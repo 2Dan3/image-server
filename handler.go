@@ -11,7 +11,8 @@ import (
 
 var (
 	imgExtension             string = ".png"
-	imgAPI                   string = "/image"
+	singleImageAPI           string = "/image"
+	multiImageAPI            string = "/images"
 	dirCarsPath              string = "cars/"
 	port                     string = ":8080"
 	fileNameSegmentSeparator string = "_"
@@ -27,15 +28,18 @@ var (
 
 func main() {
 
-	handler := http.HandlerFunc(getImage)
+	singleImageHandler := http.HandlerFunc(getImage)
+	// multiImageHandler := http.HandlerFunc(getAllImagesForGen)
 
-	http.Handle(imgAPI, handler)
+	http.Handle(singleImageAPI, singleImageHandler)
+	// http.Handle(multiImageAPI, multiImageHandler)
 
 	fmt.Printf("Server started at port %s", port)
 	http.ListenAndServe(port, nil)
 }
 
 func getImage(w http.ResponseWriter, r *http.Request) {
+	makerNameValue := r.URL.Query().Get(paramMaker)
 	isRegex := false
 	// req_url_with_params, _ := url.Parse(r.URL.String())
 	// params, _ := url.ParseQuery(req_url_with_params.RawQuery)
@@ -62,27 +66,27 @@ func getImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isRegex {
-		file_name_regex = findLatestImageByNameRegex(file_name_regex)
+		file_name_regex = findLatestImageByNameRegex(file_name_regex, makerNameValue)
 	}
 
 	if !strings.Contains(file_name_regex, imgExtension) {
 		file_name_regex = file_name_regex + imgExtension
 	}
-	relative_path := dirCarsPath + file_name_regex
+	relative_path := fmt.Sprintf("%s%s/%s", dirCarsPath, makerNameValue, file_name_regex)
 
 	buf, err := ioutil.ReadFile(relative_path)
 	if err != nil {
 		log.Println(err)
 	}
 
-	w.Header().Set("Content-Type", "application/octet-stream")
-	// w.Header().Set("Content-Type", "image/png")
+	// w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Type", "image/png")
 	w.Write(buf)
 }
 
-func findLatestImageByNameRegex(pattern string) string {
+func findLatestImageByNameRegex(pattern string, makerNameValue string) string {
 
-	files, err := ioutil.ReadDir(dirCarsPath)
+	files, err := ioutil.ReadDir(fmt.Sprintf("%s%s", dirCarsPath, makerNameValue))
 	if err != nil {
 		fmt.Println("Error:", err)
 		return ""
@@ -102,3 +106,31 @@ func findLatestImageByNameRegex(pattern string) string {
 	}
 	return ""
 }
+
+// func getAllImagesForGen(w http.ResponseWriter, r *http.Request) {
+
+// 	// makerNameValue := r.URL.Query().Get(paramMaker)
+// 	// modelNameValue := r.URL.Query().Get(paramModel)
+// 	// shapeValue := r.URL.Query().Get(paramShape)
+// 	// yearsValue := r.URL.Query().Get(paramYears)
+
+// 	// pattern := fmt.Sprintf("%s_%s_%s_%s")
+
+// 	// files, err := ioutil.ReadDir(fmt.Sprintf("%s%s", dirCarsPath, makerNameValue))
+// 	// if err != nil {
+// 	// 	fmt.Println("Error:", err)
+// 	// 	return
+// 	// }
+// 	// var matchingFiles []fs.FileInfo
+// 	// for _, file := range files {
+// 	// 	match, err := filepath.Match(pattern, file.Name())
+// 	// 	if err != nil {
+// 	// 		fmt.Println("Error:", err)
+// 	// 		return
+// 	// 	}
+// 	// 	if match {
+// 	// 		matchingFiles = append(matchingFiles, file)
+// 	// 	}
+// 	// }
+// 	// fmt.Println("Files:", matchingFiles)
+// }
